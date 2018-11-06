@@ -22,6 +22,6 @@ def generateUserSubreddit(infilename, outfilename):
 
 
 if __name__ == "__main__":
-    infilename = "../bigData/raw/RC_2018-01"
-    outfilename = "../bigData/userSubreddit/RC_2018-01"
+    infilename = "bigData/raw/RC_2018-01"
+    outfilename = "bigData/userSubreddit/RC_2018-01"
     generateUserSubreddit(infilename, outfilename)

@@ -16,10 +16,10 @@ def addToIdToName(infilename, idToName):
 if __name__ == "__main__":
     idToName = {}
     for i in range(1, 7):
-        infilename = "../bigData/raw/RC_2018-0" + str(i)
+        infilename = "bigData/raw/RC_2018-0" + str(i)
         addToIdToName(infilename, idToName)
 
-    outfilename = "../bigData/subredditIdToName"
+    outfilename = "bigData/subredditIdToName"
     with open(outfilename, 'w') as outfile:
         for subreddit, subredditName in idToName.iteritems():
             outfile.write("{} {}\n".format(subreddit, subredditName))
