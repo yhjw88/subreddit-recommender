@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 # Data Constants
 ##############################################
 comment_dir = 'data/comments/'
-subreddit_id_file = 'data/subredditIdToName'
+subreddit_name_file = 'data/subredditIdToName'
 comment_graph_file = 'data/commentGraph.txt'
 
 ##############################################
@@ -19,7 +19,7 @@ def base36decode(number):
 ##############################################
 # Load Raw Reddit Data
 ##############################################
-def read_subreddit_ids(filename):
+def read_subreddit_names(filename):
     """
     Reads in file with global mappings from subreddit ids to names.
     Filters out subreddit names that begin with 'u_'.
@@ -84,7 +84,7 @@ def read_subreddit_comments(dirname, subreddit_name_dict):
                         comment_weights[(user, subreddit_id)] += int(comment_count)
     return comment_weights, comment_edges, users, subreddits_ids
 
-subreddit_name_dict = read_subreddit_ids(subreddit_id_file) # subreddit_id -> subreddit
+subreddit_name_dict = read_subreddit_names(subreddit_name_file) # subreddit_id -> subreddit
 comment_weights, comment_edges, users, subreddit_ids = read_subreddit_comments(comment_dir, subreddit_name_dict) # (user, subreddit_id) -> comment_count
 
 print "Number of unique users: ", len(users)
