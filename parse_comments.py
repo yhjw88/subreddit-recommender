@@ -160,6 +160,13 @@ print "C: Number of edges: ", G.GetEdges()
 
 snap.SaveEdgeList(C, comment_graph_file) # save graph to text file
 
+subreddit_name_dict = read_subreddit_names(subreddit_name_file) # subreddit_id -> subreddit
+comment_weights, comment_edges, users, subreddit_ids = read_subreddit_comments(comment_dir, subreddit_name_dict) # (user, subreddit_id) -> comment_count
+
+print "Number of unique users: ", len(users)
+print "Number of unique subreddits: ", len(subreddit_ids)
+print "Number of unique comment edges: ", len(comment_edges)
+
 ##############################################
 # Construct User-User Graph (Shared Subreddits)
 ##############################################
