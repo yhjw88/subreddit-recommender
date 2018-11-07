@@ -1,4 +1,6 @@
 data/comments/*
+data/commentGraph.txt
+bigData
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
