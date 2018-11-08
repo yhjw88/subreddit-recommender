@@ -51,7 +51,7 @@ def getUserIdToSubreddits(infilename, userIdToSubreddits, subredditIdToName=None
 def loadNewSubreddits(infilename):
     """
     Output is dictionary of userId -> newSubreddits
-    newSubreddits is dicionary of subredditId -> count
+    newSubreddits is dictionary of subredditId -> count
     """
     userIdToNewSubreddits = {}
     with open(infilename, 'r') as infile:
@@ -62,8 +62,27 @@ def loadNewSubreddits(infilename):
                 print "Processed {}".format(i)
     return userIdToNewSubreddits
 
+def loadIndexToUserId(infilename):
+    """
+    Outputs indexToUserId, userIdToIndex
+    """
+    indexToUserId = []
+    userIdToIndex = {}
+    with open(infilename, 'r') as infile:
+        for line in infile:
+            userId = line.strip()
+            userIdToIndex[userId] = len(indexToUserId)
+            indexToUserId.append(userId)
+    return indexToUserId, userIdToIndex
 
-
-
-
-
+def loadSubredditVectors(infilename):
+    """
+    Outputs dictionary of subredditId -> set of userIdIndexes
+    """
+    subredditVectors = {}
+    with open(infilename, 'r') as infile:
+        for line in infile:
+            lineJson = json.loads(line)
+            subredditId = lineJson.keys()[0]
+            subredditVectors[subredditId] = set(lineJson[subredditId])
+    return subredditVectors
