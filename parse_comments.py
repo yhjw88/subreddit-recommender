@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 ##############################################
 comment_dir = 'data/comments/'
 subreddit_name_file = 'data/subredditIdToName'
-comment_graph_file = 'data/commentGraph.txt'
+comment_graph_file = 'data/01_commentGraph.txt'
+user_graph_file = 'data/01_userGraph.txt'
 
 ##############################################
 # Utility Functions
@@ -67,10 +68,12 @@ def read_subreddit_comments(dirname, subreddit_name_dict):
     comment_edges = set()
     for foldername, subdirlist, filelist in os.walk(dirname, topdown=False):
         for fname in filelist:
-            if fname.startswith('RC_2018-01'): # formated as RC_YYYY-MM
+            if fname.startswith('RC_'): # formated as RC_YYYY-MM
                 # Parse filename for date information
                 _, yyyymm = fname.split('_')
                 yyyy, mm = yyyymm.split('-')
+                if mm not in ['01']: #, '02', '03']: # only construct for 01 - 03
+                    continue
 
                 # Parse the file for edge weights
                 with open(os.path.join(dirname, fname)) as f:
@@ -132,27 +135,75 @@ def construct_comment_graph(user_node_ids, subreddit_node_ids, comment_edges):
     represent when a user has commented on a subreddit.
     """
     # Construct the bipartise graph
-    G = snap.PUNGraph.New()
+    C = snap.PUNGraph.New()
 
     # Add user node ids
     for user, user_node_id in user_node_ids.iteritems():
-        G.AddNode(user_node_id)
+        C.AddNode(user_node_id)
 
     # Add subreddit node ids
     for subreddit_id, subreddit_node_id in subreddit_node_ids.iteritems():
-        G.AddNode(subreddit_node_id)
+        C.AddNode(subreddit_node_id)
 
     # Add comment edges
     for user, subreddit_id in comment_edges:
         user_node_id = user_node_ids[user]
         subreddit_node_id = subreddit_node_ids[subreddit_id]
-        G.AddEdge(user_node_id, subreddit_node_id)
+        C.AddEdge(user_node_id, subreddit_node_id)
 
-    return G
+    return C
 
-G = construct_comment_graph(user_node_ids, subreddit_node_ids, comment_edges)
+C = construct_comment_graph(user_node_ids, subreddit_node_ids, comment_edges)
 
-print "Number of nodes: ", G.GetNodes()
-print "Number of edges: ", G.GetEdges()
+print "C: Number of nodes: ", G.GetNodes()
+print "C: Number of edges: ", G.GetEdges()
 
-snap.SaveEdgeList(G, comment_graph_file) # save graph to text file
+snap.SaveEdgeList(C, comment_graph_file) # save graph to text file
+
+subreddit_name_dict = read_subreddit_names(subreddit_name_file) # subreddit_id -> subreddit
+comment_weights, comment_edges, users, subreddit_ids = read_subreddit_comments(comment_dir, subreddit_name_dict) # (user, subreddit_id) -> comment_count
+
+print "Number of unique users: ", len(users)
+print "Number of unique subreddits: ", len(subreddit_ids)
+print "Number of unique comment edges: ", len(comment_edges)
+
+##############################################
+# Construct User-User Graph (Shared Subreddits)
+##############################################
+def construct_user_graph(C, user_node_ids, subreddit_node_ids):
+    U = snap.PUNGraph.New()
+
+    # Add user node ids
+    for user, user_node_id in user_node_ids.iteritems():
+        U.AddNode(user_node_id)
+
+    # Add edges between users
+    for subreddit_id, subreddit_node_id in subreddit_node_ids.iteritems():
+        node = G.GetNI(subreddit_node_id)
+
+        # Collect all subreddit neighbor nodes
+        user_nodes = []
+        for user_id in node.GetOutEdges():
+            user_nodes.append(user_id)
+
+        # At least two users share this subreddit
+        if len(user_nodes) >= 2:
+            user_pairs = list(itertools.combinations(user_nodes, 2))
+            for firstNode, secondNode in user_pairs:
+                U.AddEdge(firstNode, secondNode)
+
+    return U
+
+U = construct_user_graph(C, user_node_ids, subreddit_node_ids)
+
+print "U: Number of nodes: ", U.GetNodes()
+print "U: Number of edges: ", U.GetEdges()
+
+U_cluster_coeff = snap.GetClustCf(U, 100)
+print "U: Clustering Coefficient: ", U_cluster_coeff
+
+snap.SaveEdgeList(U, user_graph_file) # save graph to text file
+
+####################################################
+# Construct Subreddit-Subreddit Graph (Shared Users)
+####################################################
