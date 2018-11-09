@@ -1,5 +1,6 @@
 import argparse
 import json
+import tools
 
 def loadSubredditVector(infilename, neededSubreddit):
     with open(infilename, 'r') as infile:
@@ -23,21 +24,10 @@ def loadSubredditVectorsPart(infilename, start, end):
             subredditVectors[subredditId] = set(lineJson[subredditId])
     return subredditVectors
 
-def jaccardSim(subreddits1, subreddits2):
-    num1 = len(subreddits1)
-    num2 = len(subreddits2)
-    numIntersect = 0
-    for subreddit in subreddits1:
-        if subreddit in subreddits2:
-            numIntersect += 1
-    numUnion = num1 + num2 - numIntersect
-
-    return numIntersect / float(numUnion)
-
 def getMostSimilar(querySubredditId, queryVector, subredditVectors, k=10):
     similarities = []
     for i, (subredditId, subredditVector) in enumerate(subredditVectors.iteritems(), 1):
-        similarity = jaccardSim(queryVector, subredditVector)
+        similarity = tools.jaccardSim(queryVector, subredditVector)
         if subredditId == querySubredditId:
             continue
         similarities.append((similarity, subredditId))
