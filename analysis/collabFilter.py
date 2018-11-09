@@ -16,7 +16,7 @@ def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subreddi
             pickle.dump(similarSubredditDict, outfile)
     return similarSubredditDict
 
-def collabFilterRecs(oldSubreddits, similarSubredditDict, n=10, k=20):
+def collabFilterRecs(oldSubreddits, similarSubredditDict, n=2, k=20):
     recSubreddits = collections.defaultdict(int)
     for oldSubreddit in oldSubreddits:
         similarSubreddits = similarSubredditDict[oldSubreddit][:k]
@@ -40,8 +40,8 @@ if __name__ == "__main__":
     print "Loading subreddit vectors"
     subredditVectors = tools.loadSubredditVectors("../bigData/analysis/subredditVectors")
     print "Loading user id to new subreddits"
-    # userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/actualNewSubredditsDev")
-    userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/alexisDevSet")
+    userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/actualNewSubredditsDev")
+    # userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/alexisDevSet")
     print "Loading subreddit id to name"
     subredditIdToName = tools.read_subreddit_names("../bigData/subredditIdToName")
 
@@ -49,8 +49,8 @@ if __name__ == "__main__":
     print "Loading user id to old subreddits"
     userIdToOldSubreddits = {}
     neededSubreddits = set()
-    # with open("../bigData/analysis/oldSubredditsDev", 'r') as infile:
-    with open("../bigData/analysis/alexisDevOld", 'r') as infile:
+    with open("../bigData/analysis/oldSubredditsDev", 'r') as infile:
+    # with open("../bigData/analysis/alexisDevOld", 'r') as infile:
         for i, line in enumerate(infile):
             lineJson = json.loads(line)
             userIdToOldSubreddits[lineJson["userId"]] = lineJson["oldSubreddits"]
