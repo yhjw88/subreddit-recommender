@@ -17,7 +17,7 @@ def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subreddi
                 pickle.dump(similarSubredditDict, outfile)
     return similarSubredditDict
 
-def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=2, k=20):
+def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=10, k=20):
     # TODO: This currently ignores simType
     recSubreddits = collections.defaultdict(int)
     for oldSubreddit in oldSubreddits:
@@ -67,8 +67,8 @@ if __name__ == "__main__":
     print "Loading similarity info"
     similarSubredditFilename = "../bigData/collabFilter/{}Sims.pkl".format(simType)
     similarSubredditDict = {}
-    # with open(similarSubredditFilename, 'r') as infile:
-    #     similarSubredditDict = pickle.load(infile)
+    with open(similarSubredditFilename, 'r') as infile:
+        similarSubredditDict = pickle.load(infile)
     addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, similarSubredditFilename, simType)
 
     # Do collab filtering
@@ -94,13 +94,5 @@ if __name__ == "__main__":
         # print "New: {}".format([subredditIdToName[thing] for thing in actuals])
         # print "Good: {}".format(goodRecs)
         # print "Bad: {}".format(badRecs)
+    print "Total Recs: {}".format(numTotal)
     print "Precision @10: {}".format(numGood / float(numTotal))
-
-
-
-    # # print subredditVectors["t5_3b749"]
-    # # print subredditVectors["t5_2s427"]
-    # # print getMostSimilar(subredditVectors["t5_3b749"], subredditVectors)
-    # # Do collab filtering.
-    # # for userId, newSubreddits in userIdToNewSubreddits.iteritems():
-    # #     oldSubreddits = userIdToOldSubreddits[userId]
