@@ -1,22 +1,24 @@
 import collections
 import cPickle as pickle
-import json
 import tools
 
-def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, savefilename):
-    for i, neededSubreddit in enumerate(neededSubreddits):
+def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, savefilename, simType):
+    for i, neededSubreddit in enumerate(neededSubreddits, 1):
         print "Processing {}: {}".format(i, neededSubreddit)
         if neededSubreddit in similarSubredditDict:
             print "Skipping: {}".format(neededSubreddit)
             continue
         queryVector = subredditVectors[neededSubreddit]
-        similarSubredditPairs = tools.getMostSimilar(neededSubreddit, queryVector, subredditVectors, 100)
+        similarSubredditPairs = tools.getMostSimilar(neededSubreddit, queryVector, subredditVectors, 100, simType)
         similarSubredditDict[neededSubreddit] = similarSubredditPairs
-        with open("../bigData/analysis/similarSubreddits3/full.pkl", 'w') as outfile:
-            pickle.dump(similarSubredditDict, outfile)
+        if i % 50 == 0 or i == len(neededSubreddits):
+            print "Checkpointing"
+            with open(savefilename, 'w') as outfile:
+                pickle.dump(similarSubredditDict, outfile)
     return similarSubredditDict
 
-def collabFilterRecs(oldSubreddits, similarSubredditDict, n=2, k=20):
+def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=2, k=20):
+    # TODO: This currently ignores simType
     recSubreddits = collections.defaultdict(int)
     for oldSubreddit in oldSubreddits:
         similarSubreddits = similarSubredditDict[oldSubreddit][:k]
@@ -34,25 +36,26 @@ def collabFilterRecs(oldSubreddits, similarSubredditDict, n=2, k=20):
     return recSubredditList[:n]
 
 if __name__ == "__main__":
+    # Switch to desired similarity type.
+    simType = "jaccard"
+
     # Load everything.
     print "Loading user id indexes"
-    indexToUserId, userIdToIndex = tools.loadIndexToUserId("../bigData/analysis/indexToUserId")
+    indexToUserId, userIdToIndex = tools.loadIndexToUserId("../bigData/collabFilter/indexToUserId")
     print "Loading subreddit vectors"
-    subredditVectors = tools.loadSubredditVectors("../bigData/analysis/subredditVectors")
+    subredditVectors = tools.loadSubredditVectors("../bigData/collabFilter/subredditVectors.pkl")
+    print "Loading user id to old subreddits"
+    userIdToOldSubreddits = tools.getUserIdToSubredditsByType("../bigData/devTest/devUsers", "oldSubreddits")
     print "Loading user id to new subreddits"
-    userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/actualNewSubredditsDev")
+    userIdToNewSubreddits = tools.getUserIdToSubredditsByType("../bigData/devTest/devUsers", "newSubreddits")
     print "Loading subreddit id to name"
     subredditIdToName = tools.read_subreddit_names("../bigData/subredditIdToName")
 
-    # Should be in tools but being sloppy due to time.
-    print "Loading user id to old subreddits"
-    userIdToOldSubreddits = {}
+    # Extract needed subreddits.
     neededSubreddits = set()
-    with open("../bigData/analysis/oldSubredditsDev", 'r') as infile:
-        for i, line in enumerate(infile):
-            lineJson = json.loads(line)
-            userIdToOldSubreddits[lineJson["userId"]] = lineJson["oldSubreddits"]
-            neededSubreddits.update(lineJson["oldSubreddits"])
+    for userId, oldSubreddits in userIdToOldSubreddits.iteritems():
+        for oldSubreddit in oldSubreddits:
+            neededSubreddits.add(oldSubreddit)
     print "Need {} subreddits".format(len(neededSubreddits))
 
     # Filter out all not needed subredditVector < 10 users
@@ -61,27 +64,23 @@ if __name__ == "__main__":
             del subredditVectors[subredditId]
     print "Total subreddits after filter: {}".format(len(subredditVectors))
 
-    # print "Loading similarity info"
-    similarSubredditFilename = "../bigData/analysis/similarSubreddits3/full.pkl"
+    print "Loading similarity info"
+    similarSubredditFilename = "../bigData/collabFilter/{}Sims.pkl".format(simType)
     similarSubredditDict = {}
     with open(similarSubredditFilename, 'r') as infile:
         similarSubredditDict = pickle.load(infile)
-    addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, similarSubredditFilename)
+    addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, similarSubredditFilename, simType)
 
     # Do collab filtering
     numGood = 0
     numTotal = 0
     for userId, oldSubreddits in userIdToOldSubreddits.iteritems():
-        recs = collabFilterRecs(oldSubreddits, similarSubredditDict)
-        actuals = []
-        for rec in userIdToNewSubreddits[userId]:
-            thing = rec.keys()[0]
-            actuals.append(thing)
+        recs = collabFilterRecs(oldSubreddits, similarSubredditDict, simType)
 
         goodRecs = []
         badRecs = []
         for _, rec in recs:
-            if rec in actuals:
+            if rec in userIdToNewSubreddits[userId]:
                 goodRecs.append(subredditIdToName[rec])
             else:
                 badRecs.append(subredditIdToName[rec])

@@ -1,5 +1,7 @@
 # Tools for graph analysis
+import cPickle as pickle
 import json
+import math
 
 def read_subreddit_names(filename):
     """
@@ -59,7 +61,7 @@ def getUserIdToSubredditsByType(infilename, subredditType):
     with open(infilename, 'r') as infile:
         for i, line in enumerate(infile, 1):
             lineJson = json.loads(line)
-            userIdToSubreddits[lineJson["userId"]] = lineJson["newSubreddits"]
+            userIdToSubreddits[lineJson["userId"]] = lineJson[subredditType]
             if i % 1000000 == 0:
                 print "Processed {}".format(i)
     return userIdToSubreddits
@@ -79,14 +81,28 @@ def loadIndexToUserId(infilename):
 
 def loadSubredditVectors(infilename):
     """
-    Outputs dictionary of subredditId -> set of userIdIndexes
+    Outputs dictionary of subredditId -> dict mapping integer userIndex to count
     """
+    if infilename.endswith("json"):
+        return loadSubredditVectorsJson(infilename)
+    if infilename.endswith("pkl"):
+        return loadSubredditVectorsPkl(infilename)
+
+def loadSubredditVectorsJson(infilename):
     subredditVectors = {}
     with open(infilename, 'r') as infile:
         for line in infile:
             lineJson = json.loads(line)
             subredditId = lineJson.keys()[0]
-            subredditVectors[subredditId] = set(lineJson[subredditId])
+            subredditVectors[subredditId] = {}
+            for userIndex, count in lineJson[subredditId].iteritems():
+                subredditVectors[subredditId][int(userIndex)] = count
+    return subredditVectors
+
+def loadSubredditVectorsPkl(infilename):
+    subredditVectors = None
+    with open(infilename, 'r') as infile:
+        subredditVectors = pickle.load(infile)
     return subredditVectors
 
 def jaccardSim(subreddits1, subreddits2):
@@ -106,10 +122,45 @@ def jaccardSim(subreddits1, subreddits2):
 
     return numIntersect / float(numUnion)
 
-def getMostSimilar(querySubredditId, queryVector, subredditVectors, k=10):
+def getL2Norm(vector):
+    vectorSum = 0
+    for _, value in vector.iteritems():
+        vectorSum += value**2
+    return math.sqrt(vectorSum)
+
+def cosineSim(subredditId1, subredditId2, subredditVectors, l2NormCache):
+    subreddits1 = subredditVectors[subredditId1]
+    subreddits2 = subredditVectors[subredditId2]
+    if subredditId1 not in normCache:
+        l2NormCache[subredditId1] = getL2Norm(subreddits1)
+    if subredditId2 not in normCache:
+        l2NormCache[subredditId2] = getL2Norm(subreddits2)
+    denom = l2NormCache[subredditId1] * l2NormCache[subredditId2]
+
+    num1 = len(subreddits1)
+    num2 = len(subreddits2)
+    numer = 0
+    if num1 < num2:
+        for subreddit, count in subreddits1.iteritems():
+            if subreddit in subreddits2:
+                numer += count * subreddits2[subreddit]
+    else:
+        for subreddit, count in subreddits2.iteritems():
+            if subreddit in subreddits1:
+                numer += count * subreddits1[subreddit]
+
+    return numer / float(denom)
+
+def getMostSimilar(querySubredditId, queryVector, subredditVectors, k=10, simType="jaccard"):
+    cache = {}
     similarities = []
     for i, (subredditId, subredditVector) in enumerate(subredditVectors.iteritems(), 1):
-        similarity = jaccardSim(queryVector, subredditVector)
+        if simType == "jaccard":
+            similarity = jaccardSim(queryVector, subredditVector)
+        elif simType == "cosine":
+            similarity = cosineSim(querySubredditId, subredditId, subredditVectors, cache)
+        else:
+            raise Exception("{} not acceptable as a simType".format(simType))
         if subredditId == querySubredditId:
             continue
         similarities.append((similarity, subredditId))
