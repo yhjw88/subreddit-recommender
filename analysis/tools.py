@@ -48,19 +48,21 @@ def getUserIdToSubreddits(infilename, userIdToSubreddits, subredditIdToName=None
                 print "Processed {}".format(i)
     return userIdToSubreddits
 
-def loadNewSubreddits(infilename):
+def getUserIdToSubredditsByType(infilename, subredditType):
     """
-    Output is dictionary of userId -> newSubreddits
-    newSubreddits is dictionary of subredditId -> count
+    Loads subreddits from the given file of the given subredditType.
+    Legal options are "newSubreddits" and "oldSubreddits"
+    Output is dictionary of userId -> subreddits
+    subreddits is dictionary of subredditId -> count
     """
-    userIdToNewSubreddits = {}
+    userIdToSubreddits = {}
     with open(infilename, 'r') as infile:
         for i, line in enumerate(infile, 1):
             lineJson = json.loads(line)
-            userIdToNewSubreddits[lineJson["userId"]] = lineJson["newSubreddits"]
+            userIdToSubreddits[lineJson["userId"]] = lineJson["newSubreddits"]
             if i % 1000000 == 0:
                 print "Processed {}".format(i)
-    return userIdToNewSubreddits
+    return userIdToSubreddits
 
 def loadIndexToUserId(infilename):
     """

@@ -41,7 +41,6 @@ if __name__ == "__main__":
     subredditVectors = tools.loadSubredditVectors("../bigData/analysis/subredditVectors")
     print "Loading user id to new subreddits"
     userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/actualNewSubredditsDev")
-    # userIdToNewSubreddits = tools.loadNewSubreddits("../bigData/analysis/alexisDevSet")
     print "Loading subreddit id to name"
     subredditIdToName = tools.read_subreddit_names("../bigData/subredditIdToName")
 
