@@ -131,9 +131,9 @@ def getL2Norm(vector):
 def cosineSim(subredditId1, subredditId2, subredditVectors, l2NormCache):
     subreddits1 = subredditVectors[subredditId1]
     subreddits2 = subredditVectors[subredditId2]
-    if subredditId1 not in normCache:
+    if subredditId1 not in l2NormCache:
         l2NormCache[subredditId1] = getL2Norm(subreddits1)
-    if subredditId2 not in normCache:
+    if subredditId2 not in l2NormCache:
         l2NormCache[subredditId2] = getL2Norm(subreddits2)
     denom = l2NormCache[subredditId1] * l2NormCache[subredditId2]
 

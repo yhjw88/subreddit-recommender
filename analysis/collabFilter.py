@@ -37,7 +37,7 @@ def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=2, k=20):
 
 if __name__ == "__main__":
     # Switch to desired similarity type.
-    simType = "jaccard"
+    simType = "cosine"
 
     # Load everything.
     print "Loading user id indexes"
@@ -67,8 +67,8 @@ if __name__ == "__main__":
     print "Loading similarity info"
     similarSubredditFilename = "../bigData/collabFilter/{}Sims.pkl".format(simType)
     similarSubredditDict = {}
-    with open(similarSubredditFilename, 'r') as infile:
-        similarSubredditDict = pickle.load(infile)
+    # with open(similarSubredditFilename, 'r') as infile:
+    #     similarSubredditDict = pickle.load(infile)
     addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, similarSubredditFilename, simType)
 
     # Do collab filtering
