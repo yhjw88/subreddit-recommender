@@ -50,7 +50,6 @@ if __name__ == "__main__":
     userIdToOldSubreddits = {}
     neededSubreddits = set()
     with open("../bigData/analysis/oldSubredditsDev", 'r') as infile:
-    # with open("../bigData/analysis/alexisDevOld", 'r') as infile:
         for i, line in enumerate(infile):
             lineJson = json.loads(line)
             userIdToOldSubreddits[lineJson["userId"]] = lineJson["oldSubreddits"]
