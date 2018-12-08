@@ -32,12 +32,12 @@ def readUserIdFilters(infilename, userIdsToFilter):
             userIdsToFilter.add(line.strip())
     return userIdsToFilter
 
-def getUserIdToSubreddits(infilename, userIdToSubreddits, subredditIdToName=None, userIdsToFilter=set(), includeCounts=False):
+def getUserIdToSubreddits(infilename, userIdToSubreddits, subredditIdsToKeep=None, userIdsToFilter=set(), includeCounts=False):
     print "Processing {}".format(infilename)
     with open(infilename, 'r') as f:
         for i, line in enumerate(f, 1):
             userId, subredditId, commentCount = line.split()
-            if subredditIdToName is not None and subredditId not in subredditIdToName:
+            if subredditIdsToKeep is not None and subredditId not in subredditIdsToKeep:
                 continue
             if userId in userIdsToFilter:
                 continue

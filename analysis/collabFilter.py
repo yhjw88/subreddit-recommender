@@ -1,5 +1,6 @@
 import collections
 import cPickle as pickle
+import os
 import tools
 
 def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, savefilename, simType):
@@ -37,7 +38,7 @@ def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=10, k=20):
 
 if __name__ == "__main__":
     # Switch to desired similarity type.
-    simType = "cosine"
+    simType = "jaccard"
 
     # Load everything.
     print "Loading user id indexes"
@@ -45,9 +46,9 @@ if __name__ == "__main__":
     print "Loading subreddit vectors"
     subredditVectors = tools.loadSubredditVectors("../bigData/collabFilter/subredditVectors.pkl")
     print "Loading user id to old subreddits"
-    userIdToOldSubreddits = tools.getUserIdToSubredditsByType("../bigData/devTest/devUsers", "oldSubreddits")
+    userIdToOldSubreddits = tools.getUserIdToSubredditsByType("../bigData/finalGeneration/devUsers", "oldSubreddits")
     print "Loading user id to new subreddits"
-    userIdToNewSubreddits = tools.getUserIdToSubredditsByType("../bigData/devTest/devUsers", "newSubreddits")
+    userIdToNewSubreddits = tools.getUserIdToSubredditsByType("../bigData/finalGeneration/devUsers", "newSubreddits")
     print "Loading subreddit id to name"
     subredditIdToName = tools.read_subreddit_names("../bigData/subredditIdToName")
 
@@ -67,8 +68,11 @@ if __name__ == "__main__":
     print "Loading similarity info"
     similarSubredditFilename = "../bigData/collabFilter/{}Sims.pkl".format(simType)
     similarSubredditDict = {}
-    with open(similarSubredditFilename, 'r') as infile:
-        similarSubredditDict = pickle.load(infile)
+    if os.path.isfile(similarSubredditFilename):
+        with open(similarSubredditFilename, 'r') as infile:
+            similarSubredditDict = pickle.load(infile)
+    else:
+        print "Similarity info not found, starting from scratch"
     addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, similarSubredditFilename, simType)
 
     # Do collab filtering
