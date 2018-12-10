@@ -14,4 +14,4 @@ def subreddit_to_index(subreddits_to_index,subreddit):
     return subreddits_to_index[subreddit]
 
 def index_to_subreddit(index_to_subreddits,index):
-    return index_to_subreddit[index]
+    return index_to_subreddits[index]
