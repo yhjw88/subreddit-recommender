@@ -2,6 +2,7 @@ import collections
 import cPickle as pickle
 import os
 import tools
+import time
 
 def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, savefilename, simType):
     for i, neededSubreddit in enumerate(neededSubreddits, 1):
@@ -12,13 +13,13 @@ def addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subreddi
         queryVector = subredditVectors[neededSubreddit]
         similarSubredditPairs = tools.getMostSimilar(neededSubreddit, queryVector, subredditVectors, 100, simType)
         similarSubredditDict[neededSubreddit] = similarSubredditPairs
-        if i % 50 == 0 or i == len(neededSubreddits):
+        if i % 200 == 0 or i == len(neededSubreddits):
             print "Checkpointing"
             with open(savefilename, 'w') as outfile:
                 pickle.dump(similarSubredditDict, outfile)
     return similarSubredditDict
 
-def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=10, k=20):
+def collabFilterRecs(oldSubreddits, similarSubredditDict, simType, n=10, k=100):
     # TODO: This currently ignores simType
     recSubreddits = collections.defaultdict(int)
     for oldSubreddit in oldSubreddits:
@@ -66,37 +67,59 @@ if __name__ == "__main__":
     print "Total subreddits after filter: {}".format(len(subredditVectors))
 
     print "Loading similarity info"
-    similarSubredditFilename = "../bigData/collabFilter/{}Sims.pkl".format(simType)
+    similarSubredditFilename = "../bigData/finalGeneration/{}Sims.pkl".format(simType)
     similarSubredditDict = {}
     if os.path.isfile(similarSubredditFilename):
         with open(similarSubredditFilename, 'r') as infile:
             similarSubredditDict = pickle.load(infile)
     else:
         print "Similarity info not found, starting from scratch"
+    start = time.time()
     addMissingSimilarSubreddits(neededSubreddits, similarSubredditDict, subredditVectors, similarSubredditFilename, simType)
 
-    # Do collab filtering
-    numGood = 0
-    numTotal = 0
-    for userId, oldSubreddits in userIdToOldSubreddits.iteritems():
+    # Get recs.
+    precision10 = 0
+    mrrMetric = 0
+    mapMetric = 0
+    numUsers = 0
+    for i, (userId, oldSubreddits) in enumerate(userIdToOldSubreddits.iteritems()):
+        print "--------------------------------------"
         recs = collabFilterRecs(oldSubreddits, similarSubredditDict, simType)
+        print "Taken: {}".format(time.time() - start)
 
-        goodRecs = []
-        badRecs = []
-        for _, rec in recs:
+        # Precision at 10.
+        goodRec10Count = 0
+        for _, rec in recs[:10]:
             if rec in userIdToNewSubreddits[userId]:
-                goodRecs.append(subredditIdToName[rec])
-            else:
-                badRecs.append(subredditIdToName[rec])
-        numGood += len(goodRecs)
-        numTotal += len(goodRecs) + len(badRecs)
+                goodRec10Count += 1
+        precision10 += goodRec10Count / 10.
 
-        # print "Predicted: {}".format(recs)
-        # print "Actual: {}".format(userIdToNewSubreddits["IndigoForever900"])
+        # Mean Reciprocal Rank.
+        for rank, (_, rec) in enumerate(recs, 1):
+            if rec in userIdToNewSubreddits[userId]:
+                mrrMetric += 1. / rank
+                break
 
-        # print "Old: {}".format([subredditIdToName[thing] for thing in userIdToOldSubreddits[userId]])
-        # print "New: {}".format([subredditIdToName[thing] for thing in actuals])
-        # print "Good: {}".format(goodRecs)
-        # print "Bad: {}".format(badRecs)
-    print "Total Recs: {}".format(numTotal)
-    print "Precision @10: {}".format(numGood / float(numTotal))
+        # Mean Average Precision.
+        correctSoFar = 0
+        numActual = float(len(userIdToNewSubreddits[userId]))
+        for rank, (_, rec) in enumerate(recs, 1):
+            if rec in userIdToNewSubreddits[userId]:
+                correctSoFar += 1
+                mapMetric += correctSoFar / numActual / rank
+
+        # Print out.
+        print "Processing {} {} {}".format(i, userId, goodRec10Count)
+        print "--------------collab------------------"
+        line = ""
+        for rec in recs[:10]:
+            line += " {} ".format(subredditIdToName[rec[1]])
+        print line
+        print "--------------------------------------"
+        print ""
+
+    totalUsers = float(len(userIdToOldSubreddits))
+    print "precision@10: {}, mrr: {}, map: {}".format(
+        precision10 / totalUsers,
+        mrrMetric / totalUsers,
+        mapMetric / totalUsers)

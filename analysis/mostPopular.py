@@ -23,33 +23,63 @@ if __name__ == "__main__":
     subredditsByPop.sort(reverse=True)
 
     # Get recs.
-    numGood = 0
-    numTotal = 0
+    precision10 = 0
+    mrrMetric = 0
+    mapMetric = 0
+    numUsers = 0
     for i, (userId, oldSubreddits) in enumerate(userIdToOldSubreddits.iteritems()):
+        print "--------------------------------------"
         recs = []
         for _, subredditId in subredditsByPop:
             if subredditId in oldSubreddits:
                 continue
             recs.append(subredditId)
-            if len(recs) == 10:
+
+        # Precision at 10.
+        goodRec10Count = 0
+        for rec in recs[:10]:
+            if rec in userIdToNewSubreddits[userId]:
+                goodRec10Count += 1
+        precision10 += goodRec10Count / 10.
+
+        # Mean Reciprocal Rank.
+        for rank, rec in enumerate(recs, 1):
+            if rec in userIdToNewSubreddits[userId]:
+                mrrMetric += 1. / rank
                 break
 
-        goodRecs = []
-        badRecs = []
-        for rec in recs:
+        # Mean Average Precision.
+        correctSoFar = 0
+        numActual = float(len(userIdToNewSubreddits[userId]))
+        for rank, rec in enumerate(recs, 1):
             if rec in userIdToNewSubreddits[userId]:
-                goodRecs.append(subredditIdToName[rec])
-            else:
-                badRecs.append(subredditIdToName[rec])
-        numGood += len(goodRecs)
-        numTotal += len(goodRecs) + len(badRecs)
+                correctSoFar += 1
+                mapMetric += correctSoFar / numActual / rank
 
-        # print "Predicted: {}".format(recs)
-        # print "Actual: {}".format(userIdToNewSubreddits["IndigoForever900"])
+        # Print out.
+        print "Processing {} {} {}".format(i, userId, goodRec10Count)
+        print "----------------old-------------------"
+        line = ""
+        for oldSubreddit in oldSubreddits:
+            line += " {} ".format(subredditIdToName[oldSubreddit])
+        print line
 
-        # print "Old: {}".format([subredditIdToName[thing] for thing in userIdToOldSubreddits[userId]])
-        # print "New: {}".format([subredditIdToName[thing] for thing in actuals])
-        # print "Good: {}".format(goodRecs)
-        # print "Bad: {}".format(badRecs)
-    print "Total Recs: {}".format(numTotal)
-    print "Precision @10: {}".format(numGood / float(numTotal))
+        print "----------------new-------------------"
+        correctAnswers = userIdToNewSubreddits[userId]
+        line = ""
+        for answer in correctAnswers:
+            line += " {} ".format(subredditIdToName[answer])
+        print line
+        print "----------------pop-------------------"
+        line = ""
+        for rec in recs[:10]:
+            line += " {} ".format(subredditIdToName[rec])
+        print line
+        print "--------------------------------------"
+        print ""
+
+    totalUsers = float(len(userIdToOldSubreddits))
+    print "precision@10: {}, mrr: {}, map: {}".format(
+        precision10 / totalUsers,
+        mrrMetric / totalUsers,
+        mapMetric / totalUsers)
